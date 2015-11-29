@@ -1,0 +1,1 @@
+content	autoscrollbar	./content/override chrome://global/content/bindings/scrollbar.xml chrome://autoscrollbar/content/scrollbar.xml

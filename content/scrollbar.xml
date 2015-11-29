@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+
+<bindings id="scrollbarBindings"
+   xmlns="http://www.mozilla.org/xbl"
+   xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+   xmlns:xbl="http://www.mozilla.org/xbl">
+
+  <binding id="thumb" extends="xul:button" />
+
+  <binding id="scrollbar-base" bindToUntrustedContent="true">
+    <handlers>
+      <handler event="contextmenu" preventdefault="true" action="event.stopPropagation();"/>
+      <handler event="click" preventdefault="true" action="event.stopPropagation();"/>
+      <handler event="dblclick" action="event.stopPropagation();"/>
+      <handler event="command" action="event.stopPropagation();"/>
+      <handler event="mousedown" phase="capturing" action="this.setAttribute('mousedown', 'true');"/>
+      <handler event="mouseup" phase="capturing" action="this.removeAttribute('mousedown');"/>
+    </handlers>
+    <implementation implements="nsIDOMEventListener">
+      <constructor><![CDATA[
+        if (this.localName != "scrollbar")
+          return;
+        this._init(true);
+      ]]></constructor>
+      <destructor><![CDATA[
+        if (this.localName != "scrollbar")
+          return;
+        this._init(false);
+      ]]></destructor>
+      <property name="isVerticalScrollbar" readonly="true">
+        <getter>
+          return this.getAttribute("orient") == "vertical";
+        </getter>
+      </property>
+      <method name="_init">
+        <parameter name="aEnable"/>
+        <body><![CDATA[
+          var toggleEventListener = (aEnable ? "add" : "remove") + "EventListener";
+      
+          if (this.hasAttribute("root")) {
+            window[toggleEventListener]("load", this, false);
+            window[toggleEventListener]("mousemove", this, true); 
+          }
+          else {
+            window[toggleEventListener]("keydown", this, true);
+          }
+        ]]></body>
+      </method>
+      <method name="handleEvent">
+        <parameter name="aEvent"/>
+        <body><![CDATA[
+          switch (aEvent.type) {
+            case "mousemove": {
+              if (this.hasAttribute("disabled") ||
+                  this.hasAttribute("mousedown") ||
+                  !this.hasAttribute("size")) {
+                return;
+              }
+            
+              let size = Number(this.getAttribute("size"));
+              if (aEvent["client" + (this.isVerticalScrollbar ? "X" : "Y")] >=
+                  aEvent.view["inner" + (this.isVerticalScrollbar ? "Width" : "Height")] - size)
+                this.collapsed = false; else this.collapsed = true;
+              break;
+            }
+            case "keydown": {
+              if (aEvent.ctrlKey &&
+                  aEvent.shiftKey &&
+                  aEvent.keyCode == aEvent.DOM_VK_F1) {
+                if (!this.collapsed) {
+                  this.collapsed = true;
+                }
+                else this.collapsed = false;
+              }
+              break;
+            }
+            case "load": {
+              this.setAttribute("size", this["scroll" + (this.isVerticalScrollbar ? "Width" : "Height")]);
+              break;
+            }
+          }
+        ]]></body>
+      </method>
+    </implementation>
+  </binding>
+
+  <binding id="scrollbar" bindToUntrustedContent="true" extends="chrome://global/content/bindings/scrollbar.xml#scrollbar-base">
+    <content clickthrough="always">
+      <xul:scrollbarbutton sbattr="scrollbar-up-top" type="decrement" xbl:inherits="curpos,maxpos,disabled,sborient=orient"/>
+      <xul:scrollbarbutton sbattr="scrollbar-down-top" type="increment" xbl:inherits="curpos,maxpos,disabled,sborient=orient"/>
+      <xul:slider flex="1" xbl:inherits="disabled,curpos,maxpos,pageincrement,increment,orient,sborient=orient">
+        <xul:thumb sbattr="scrollbar-thumb" xbl:inherits="orient,sborient=orient,collapsed=disabled" 
+                   align="center" pack="center"/>
+      </xul:slider>
+      <xul:scrollbarbutton sbattr="scrollbar-up-bottom" type="decrement" xbl:inherits="curpos,maxpos,disabled,sborient=orient"/>
+      <xul:scrollbarbutton sbattr="scrollbar-down-bottom" type="increment" xbl:inherits="curpos,maxpos,disabled,sborient=orient"/>
+    </content>
+  </binding>
+</bindings>
